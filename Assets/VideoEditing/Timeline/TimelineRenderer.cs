@@ -15,8 +15,8 @@ using UnityEngine.Animations;
 public class TimelineTrackSectionRenderer : ScriptableObject
 {
     public Timeline timeline;
-    public List<AnimationTrack> animationTracks; 
-
+    public List<AnimationTrack> animationTracks;
+    public TimelineTrackMarker[] timelineTrackMarkers;
     // time range, irrespective of timeline track space 
 
     /// <summary>
@@ -36,6 +36,9 @@ public class TimelineTrackSectionRenderer : ScriptableObject
     private float trackSectionOriginX;
     private float trackSectionOriginY;
 
+    private int amountOfTimelineMarkers;
+    private float timelineDelta;
+    private float timelineTrackUVwidth; 
     public Vector2 trackSectionOrigin
     {
         get { return new Vector2(trackSectionOriginX, trackSectionOriginY); }
@@ -53,10 +56,13 @@ public class TimelineTrackSectionRenderer : ScriptableObject
 
         trackHeight = timeline.t_preFab.GetComponent<Collider>().bounds.size.y/timeline.transform.localScale.y;
 
+        GameObject g = Instantiate(new GameObject("trackSectionOrigin"), timeline.transform);
+        g.transform.localPosition = new Vector3(2.0f, trackSecOriginY, trackSectionOriginX);
+
         animationTracks = new List<AnimationTrack>();
     }
 
-
+    // use only for generic timeline markers
     public void timelineMarkerGeneration()
     {
         float equalDim = timelineTrackWidth / (timeline.GetComponent<Collider>().bounds.size.z);
@@ -70,6 +76,56 @@ public class TimelineTrackSectionRenderer : ScriptableObject
             p.transform.localPosition = new Vector3(1, 0.25f, i - timeline.TimelineHalfWidth);
         }
     }
+
+    public void initializeTimelineTrackMarkers()
+    {
+        // few factors
+
+        // What % of timelineMaxTime is clamped
+        // what is the difference between the left and right uv coordinates?
+        Debug.Log("track face 0 " + timeline.trackFaceUVs[0]);
+        Debug.Log("track face 1 " + timeline.trackFaceUVs[1]);
+
+
+        timelineTrackUVwidth = timeline.trackFaceUVs[0].x - timeline.trackFaceUVs[1].x;
+        Debug.Log("timelineDiff " + timelineTrackUVwidth);
+        // that difference is X units of time clamped inside the timeline (at current scale) --- this is our INITIAL clamp
+        currentFromTimeClamp = 0;
+        currentToTimeClamp = timeline.timelineMaximumTime/2;
+        Debug.Log("toclamptime " + currentToTimeClamp);
+        // timelineDiff = maxTime/2
+
+
+        // 20 Unity Units, 5 is max time. 
+        // we get to determine how much unity units from the UV coord represents the time//
+        amountOfTimelineMarkers = Mathf.RoundToInt(currentToTimeClamp - currentFromTimeClamp) + 1; //
+        timelineDelta = (timelineTrackUVwidth) / (timeline.timelineMaximumTime/2);
+
+
+        // make sure all the material textures are scaled at 1,1;
+        foreach (AnimationTrack track in animationTracks)
+        {
+            Material mat = track.GetComponent<Renderer>().material;
+            mat.SetTextureScale("_MainTex", new Vector2(1, 1));
+        }
+
+        Debug.Log("TimelineDiff " + timelineTrackUVwidth);
+
+        // set up timeline track markers
+        timelineTrackMarkers = new TimelineTrackMarker[Mathf.FloorToInt(amountOfTimelineMarkers)];
+
+        // set up positions for these timeline track markers
+        for (int i = 0; i < timelineTrackMarkers.Length; i++)
+        {
+            TimelineTrackMarker t = Instantiate(timeline.timelineTrackMarkerPrefab, timeline.transform).GetComponent<TimelineTrackMarker>();
+            timelineTrackMarkers[i] = t;
+
+            // center coord of timeline track + amount of y needed to get to top of timeline renderer + amount o
+            t.transform.localPosition = new Vector3(0.2f, trackSectionOriginY, trackSectionOriginX + i * timelineDelta);
+            t.transform.localScale = new Vector3(1/t.transform.parent.localScale.x, 1/t.transform.parent.localScale.y, 1/t.transform.parent.localScale.z);
+        }
+    }
+
     #endregion
 
     // some of these variables aren't used for the coordinate system, but they are used in determining time spacing for things like 
@@ -210,12 +266,13 @@ public class TimelineTrackSectionRenderer : ScriptableObject
     
     }
 
+  
     #endregion
 
     // look up render texture for animation curves so we can create vertical curve
 
-    #region timeline configuration
-    public void ZoomIn()
+    #region timeline zoom and scroll methods
+    public void ZoomIn(float zoomDelta)
     {
         if (timeline.isTimelineActivated)
         {
@@ -223,7 +280,7 @@ public class TimelineTrackSectionRenderer : ScriptableObject
         }
     }
 
-    public void ZoomOut()
+    public void ZoomOut(float zoomDelta)
     {
         if (timeline.isTimelineActivated)
         {
@@ -231,22 +288,129 @@ public class TimelineTrackSectionRenderer : ScriptableObject
         }
     }
 
-    public void ScrollLeft()
+    public void ScrollLeft(float scrollDelta)
     {
-        if (timeline.isTimelineActivated)
+        if (timeline.isTimelineActivated && currentFromTimeClamp > 0)
         {
+
+            timeline.trackPrefabUVs[0].x -= scrollDelta;
+            timeline.trackPrefabUVs[1].x -= scrollDelta;
+            timeline.trackPrefabUVs[2].x -= scrollDelta;
+            timeline.trackPrefabUVs[3].x -= scrollDelta;
+
+            timeline.trackFaceUVs[timeline.trackUVindices[0]] = timeline.trackPrefabUVs[0];
+            timeline.trackFaceUVs[timeline.trackUVindices[1]] = timeline.trackPrefabUVs[1];
+            timeline.trackFaceUVs[timeline.trackUVindices[2]] = timeline.trackPrefabUVs[2];
+            timeline.trackFaceUVs[timeline.trackUVindices[3]] = timeline.trackPrefabUVs[3];
+
+
+            foreach (AnimationTrack track in animationTracks)
+            {
+                Mesh animationTrackMesh = track.GetComponent<MeshFilter>().mesh;
+                animationTrackMesh.uv = timeline.trackFaceUVs;
+                
+            }
+
+            currentFromTimeClamp -= scrollDelta;
+            currentToTimeClamp -= scrollDelta;
+
+            recalculateTimelineTrackMarkers();
 
         }
     }
 
-    public void ScrollRight()
+    public void ScrollRight(float scrollDelta)
     {
-        if (timeline.isTimelineActivated)
+        // first re-render texture and shift UV Coordinates
+        if (timeline.isTimelineActivated && currentToTimeClamp < timeline.timelineMaximumTime)
         {
+            timeline.trackPrefabUVs[0].x += scrollDelta;
+            timeline.trackPrefabUVs[1].x += scrollDelta;
+            timeline.trackPrefabUVs[2].x += scrollDelta;
+            timeline.trackPrefabUVs[3].x += scrollDelta;
 
+            timeline.trackFaceUVs[timeline.trackUVindices[0]] = timeline.trackPrefabUVs[0];
+            timeline.trackFaceUVs[timeline.trackUVindices[1]] = timeline.trackPrefabUVs[1];
+            timeline.trackFaceUVs[timeline.trackUVindices[2]] = timeline.trackPrefabUVs[2];
+            timeline.trackFaceUVs[timeline.trackUVindices[3]] = timeline.trackPrefabUVs[3];
+
+
+            foreach (AnimationTrack track in animationTracks)
+            {
+                Mesh animationTrackMesh = track.GetComponent<MeshFilter>().mesh;
+                animationTrackMesh.uv = timeline.trackFaceUVs;
+
+            }
+
+            // second, recalculate timeclamped 
+
+            currentFromTimeClamp += scrollDelta;
+            currentToTimeClamp += scrollDelta;
+
+            recalculateTimelineTrackMarkers();
         }
+
+    }
+
+    // do some planning
+    private void recalculateTimelineTrackMarkers()
+    {
+        // calculate amount of integers between currentToTimeClamp and c
+        int amountOfTimelineMarkers = 0;
+        float currentNumber = currentFromTimeClamp; 
+        while(currentNumber <= currentToTimeClamp)
+        {
+            if(currentNumber == Mathf.FloorToInt(currentNumber))
+            {
+                amountOfTimelineMarkers += 1;
+                currentNumber += 1; 
+            }
+            else
+            {
+                float delta = (Mathf.FloorToInt(currentNumber) + 1) - currentNumber;
+                currentNumber += delta;     
+            }
+        }
+
+        
+        // difference is a bad idea / better to count how many integers are here
+        timelineDelta = (timelineTrackUVwidth) / (timeline.timelineMaximumTime / 2);
+
+        foreach(TimelineTrackMarker t in timelineTrackMarkers)
+        {
+            Destroy(t.gameObject);
+        }
+
+        timelineTrackMarkers = new TimelineTrackMarker[Mathf.FloorToInt(amountOfTimelineMarkers)];
+
+        // the z coordinate is dependent upon which time cordinate we are starting with 
+
+        // we need to convert currentFromTimeSpace to timeline local position 
+        float timelineStartCoordinate = timelineDelta * Mathf.FloorToInt(currentFromTimeClamp);
+
+        // you may not have all the markers 
+
+        // 0 // 1 // 2 // 3 // 4 
+
+        
+
+        for (int i = 0; i < timelineTrackMarkers.Length; i++)
+        {
+            TimelineTrackMarker t = Instantiate(timeline.timelineTrackMarkerPrefab, timeline.transform).GetComponent<TimelineTrackMarker>();
+            timelineTrackMarkers[i] = t;
+
+            // center coord of timeline track + amount of y needed to get to top of timeline renderer + amount o
+            t.transform.localPosition = new Vector3(0.2f, trackSectionOriginY, trackSectionOriginX + i * timelineDelta);
+            t.transform.localScale = new Vector3(1 / t.transform.parent.localScale.x, 1 / t.transform.parent.localScale.y, 1 / t.transform.parent.localScale.z);
+        }
+
     }
 
     #endregion
 
+
+    #region  
+
+
+    #endregion
 }

@@ -47,6 +47,7 @@ public class Timeline : MonoBehaviour
     public AnimationTrack trackPrefab;
     public GameObject t_preFab;
     public GameObject keyframePrefab;
+    public GameObject timelineTrackMarkerPrefab;
 
     private float timelineHalfWidth;
     private float timelineFullWidth;
@@ -78,7 +79,13 @@ public class Timeline : MonoBehaviour
     private float menuHeightInTimelineSpace;
     private float timelineTrackSectionHeightInTimelineSpace;
     private float timelineOwnersHeightInTimelineSpace;
-    private float timelineTrackWidthInTimelineSpace; 
+    private float timelineTrackWidthInTimelineSpace;
+
+    // UV coordinates for 
+    private Mesh timelineTrackMesh;
+    public Vector2[] trackPrefabUVs;
+    public Vector2[] trackFaceUVs;
+    public int[] trackUVindices = new int[4]; 
 
     public float TimelineHalfWidth
     {
@@ -128,6 +135,8 @@ public class Timeline : MonoBehaviour
         SetUpPlayableGraph();
         SetupTimelineScriptableObjs();
         SetUpTimelineTrackCoordinates();
+        SetUpTimelineUVCoordinates();
+        SetUpTimelineTrackMarkers();
     }
 
     // are these values sent to each respective TimelineComponent? 
@@ -185,6 +194,25 @@ public class Timeline : MonoBehaviour
         timelineMenu.SetupTimelineMenuParameters(timelineMenuSectionOriginX, timelineMenuSectionOriginY);
 
 
+    }
+
+    public void SetUpTimelineUVCoordinates()
+    {
+        timelineTrackMesh = trackPrefab.GetComponent<MeshFilter>().mesh;
+        trackPrefabUVs = timelineTrackMesh.uv;
+
+        trackFaceUVs = new Vector2[4];
+
+        trackFaceUVs[0] = trackPrefabUVs[trackUVindices[0]];
+        trackFaceUVs[1] = trackPrefabUVs[trackUVindices[1]];
+        trackFaceUVs[2] = trackPrefabUVs[trackUVindices[2]];
+        trackFaceUVs[3] = trackPrefabUVs[trackUVindices[3]];
+
+    }
+
+    public void SetUpTimelineTrackMarkers()
+    {
+        trackSectionData.initializeTimelineTrackMarkers();
     }
 
     public void CalculateTimelineTickerPosition()
