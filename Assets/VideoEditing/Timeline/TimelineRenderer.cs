@@ -38,7 +38,7 @@ public class TimelineTrackSectionRenderer : ScriptableObject
 
     private int amountOfTimelineMarkers;
     private float timelineDelta;
-    private float timelineTrackUVwidth; 
+    private float timelineTrackUVwidth;
     public Vector2 trackSectionOrigin
     {
         get { return new Vector2(trackSectionOriginX, trackSectionOriginY); }
@@ -54,7 +54,7 @@ public class TimelineTrackSectionRenderer : ScriptableObject
         trackSectionOriginX = trackSecOriginX;
         trackSectionOriginY = trackSecOriginY;
 
-        trackHeight = timeline.t_preFab.GetComponent<Collider>().bounds.size.y/timeline.transform.localScale.y;
+        trackHeight = timeline.t_preFab.GetComponent<Collider>().bounds.size.y / timeline.transform.localScale.y;
 
         GameObject g = Instantiate(new GameObject("trackSectionOrigin"), timeline.transform);
         g.transform.localPosition = new Vector3(2.0f, trackSecOriginY, trackSectionOriginX);
@@ -91,7 +91,7 @@ public class TimelineTrackSectionRenderer : ScriptableObject
         Debug.Log("timelineDiff " + timelineTrackUVwidth);
         // that difference is X units of time clamped inside the timeline (at current scale) --- this is our INITIAL clamp
         currentFromTimeClamp = 0;
-        currentToTimeClamp = timeline.timelineMaximumTime/2;
+        currentToTimeClamp = timeline.timelineMaximumTime / 2;
         Debug.Log("toclamptime " + currentToTimeClamp);
         // timelineDiff = maxTime/2
 
@@ -99,7 +99,7 @@ public class TimelineTrackSectionRenderer : ScriptableObject
         // 20 Unity Units, 5 is max time. 
         // we get to determine how much unity units from the UV coord represents the time//
         amountOfTimelineMarkers = Mathf.RoundToInt(currentToTimeClamp - currentFromTimeClamp) + 1; //
-        timelineDelta = (timelineTrackUVwidth) / (timeline.timelineMaximumTime/2);
+        timelineDelta = (timelineTrackUVwidth) / (timeline.timelineMaximumTime / 2);
 
 
         // make sure all the material textures are scaled at 1,1;
@@ -122,7 +122,7 @@ public class TimelineTrackSectionRenderer : ScriptableObject
 
             // center coord of timeline track + amount of y needed to get to top of timeline renderer + amount o
             t.transform.localPosition = new Vector3(0.2f, trackSectionOriginY, trackSectionOriginX + i * timelineDelta);
-            t.transform.localScale = new Vector3(1/t.transform.parent.localScale.x, 1/t.transform.parent.localScale.y, 1/t.transform.parent.localScale.z);
+            t.transform.localScale = new Vector3(1 / t.transform.parent.localScale.x, 1 / t.transform.parent.localScale.y, 1 / t.transform.parent.localScale.z);
         }
     }
 
@@ -180,7 +180,7 @@ public class TimelineTrackSectionRenderer : ScriptableObject
 
             for (int i = tracksAfterTrackIndex; i <= animationTracks.Count; i++)
             {
-                Vector3 newTrackPosition = new Vector3(newTrackPositionX , currentHeight, 0.078f);
+                Vector3 newTrackPosition = new Vector3(newTrackPositionX, currentHeight, 0.078f);
                 animationTracks[i].transform.localPosition = newTrackPosition;
 
                 // note add animations to move up tracks? 
@@ -209,7 +209,7 @@ public class TimelineTrackSectionRenderer : ScriptableObject
     // to instantiate the Animation track, call this button after a game object has been selected and a UI has been clicked
     public void RenderAllTracks()
     {
-        foreach(AnimationTrack track in timeline.tracks)
+        foreach (AnimationTrack track in timeline.tracks)
         {
             RenderKeyframesPerTrack(track);
         }
@@ -243,7 +243,7 @@ public class TimelineTrackSectionRenderer : ScriptableObject
 
         // for loop on first curve?
         // before checking business logic, make sure that this time is not inside the Times List
-        
+
         // if it is, break and go to next time 
         // if not, add the time onto both list of times
 
@@ -252,31 +252,37 @@ public class TimelineTrackSectionRenderer : ScriptableObject
         // for loop on second curve?
 
         // for loop on third curve? 
-        
+
         // for loop on forth curve?
 
         // for loop on fifth curve?
 
         // if the same time is found for at least one array ==> go to the next time in curveX. 
-        
+
         // make sure that there isnt the same in the list of times
-        
+
         // when creating keyframeUI, make sure there is a reference to which CURVES the keyframe is referencing
-    
-    
+
+
     }
 
-  
+
     #endregion
 
     // look up render texture for animation curves so we can create vertical curve
 
     #region timeline zoom and scroll methods
+
+    // all zoom methods increase / decrease the amount of 
     public void ZoomIn(float zoomDelta)
     {
         if (timeline.isTimelineActivated)
         {
+            currentFromTimeClamp *= (1 + zoomDelta);
+            currentToTimeClamp *= (1 - zoomDelta);
 
+            recalculateTimelineTrackMarkers();
+            recalculateTimelineTickerPosition();
         }
     }
 
@@ -284,6 +290,11 @@ public class TimelineTrackSectionRenderer : ScriptableObject
     {
         if (timeline.isTimelineActivated)
         {
+            currentFromTimeClamp *= (1 - zoomDelta);
+            currentToTimeClamp *= (1 + zoomDelta);
+
+            recalculateTimelineTrackMarkers();
+            recalculateTimelineTickerPosition();
 
         }
     }
@@ -293,28 +304,20 @@ public class TimelineTrackSectionRenderer : ScriptableObject
         if (timeline.isTimelineActivated && currentFromTimeClamp > 0)
         {
 
-            timeline.trackPrefabUVs[0].x -= scrollDelta;
-            timeline.trackPrefabUVs[1].x -= scrollDelta;
-            timeline.trackPrefabUVs[2].x -= scrollDelta;
-            timeline.trackPrefabUVs[3].x -= scrollDelta;
-
-            timeline.trackFaceUVs[timeline.trackUVindices[0]] = timeline.trackPrefabUVs[0];
-            timeline.trackFaceUVs[timeline.trackUVindices[1]] = timeline.trackPrefabUVs[1];
-            timeline.trackFaceUVs[timeline.trackUVindices[2]] = timeline.trackPrefabUVs[2];
-            timeline.trackFaceUVs[timeline.trackUVindices[3]] = timeline.trackPrefabUVs[3];
-
+            // shiftUVsLeft(scrollDelta);
 
             foreach (AnimationTrack track in animationTracks)
             {
                 Mesh animationTrackMesh = track.GetComponent<MeshFilter>().mesh;
                 animationTrackMesh.uv = timeline.trackFaceUVs;
-                
+
             }
 
             currentFromTimeClamp -= scrollDelta;
             currentToTimeClamp -= scrollDelta;
 
             recalculateTimelineTrackMarkers();
+            recalculateTimelineTickerPosition();
 
         }
     }
@@ -324,16 +327,8 @@ public class TimelineTrackSectionRenderer : ScriptableObject
         // first re-render texture and shift UV Coordinates
         if (timeline.isTimelineActivated && currentToTimeClamp < timeline.timelineMaximumTime)
         {
-            timeline.trackPrefabUVs[0].x += scrollDelta;
-            timeline.trackPrefabUVs[1].x += scrollDelta;
-            timeline.trackPrefabUVs[2].x += scrollDelta;
-            timeline.trackPrefabUVs[3].x += scrollDelta;
 
-            timeline.trackFaceUVs[timeline.trackUVindices[0]] = timeline.trackPrefabUVs[0];
-            timeline.trackFaceUVs[timeline.trackUVindices[1]] = timeline.trackPrefabUVs[1];
-            timeline.trackFaceUVs[timeline.trackUVindices[2]] = timeline.trackPrefabUVs[2];
-            timeline.trackFaceUVs[timeline.trackUVindices[3]] = timeline.trackPrefabUVs[3];
-
+            // shiftUVsRight(scrollDelta);
 
             foreach (AnimationTrack track in animationTracks)
             {
@@ -348,51 +343,93 @@ public class TimelineTrackSectionRenderer : ScriptableObject
             currentToTimeClamp += scrollDelta;
 
             recalculateTimelineTrackMarkers();
+            recalculateTimelineTickerPosition();
         }
 
+    }
+
+    private void shiftUVsLeft(float scrollDelta)
+    {
+        timeline.trackPrefabUVs[0].x -= scrollDelta;
+        timeline.trackPrefabUVs[1].x -= scrollDelta;
+        timeline.trackPrefabUVs[2].x -= scrollDelta;
+        timeline.trackPrefabUVs[3].x -= scrollDelta;
+
+        timeline.trackFaceUVs[timeline.trackUVindices[0]] = timeline.trackPrefabUVs[0];
+        timeline.trackFaceUVs[timeline.trackUVindices[1]] = timeline.trackPrefabUVs[1];
+        timeline.trackFaceUVs[timeline.trackUVindices[2]] = timeline.trackPrefabUVs[2];
+        timeline.trackFaceUVs[timeline.trackUVindices[3]] = timeline.trackPrefabUVs[3];
+    }
+
+    private void shiftUVsRight(float scrollDelta)
+    {
+            timeline.trackPrefabUVs[0].x += scrollDelta;
+            timeline.trackPrefabUVs[1].x += scrollDelta;
+            timeline.trackPrefabUVs[2].x += scrollDelta;
+            timeline.trackPrefabUVs[3].x += scrollDelta;
+
+            timeline.trackFaceUVs[timeline.trackUVindices[0]] = timeline.trackPrefabUVs[0];
+            timeline.trackFaceUVs[timeline.trackUVindices[1]] = timeline.trackPrefabUVs[1];
+            timeline.trackFaceUVs[timeline.trackUVindices[2]] = timeline.trackPrefabUVs[2];
+            timeline.trackFaceUVs[timeline.trackUVindices[3]] = timeline.trackPrefabUVs[3];
     }
 
     // do some planning
     private void recalculateTimelineTrackMarkers()
     {
         // calculate amount of integers between currentToTimeClamp and c
-        int amountOfTimelineMarkers = 0;
-        float currentNumber = currentFromTimeClamp; 
-        while(currentNumber <= currentToTimeClamp)
-        {
-            if(currentNumber == Mathf.FloorToInt(currentNumber))
-            {
-                amountOfTimelineMarkers += 1;
-                currentNumber += 1; 
-            }
-            else
-            {
-                float delta = (Mathf.FloorToInt(currentNumber) + 1) - currentNumber;
-                currentNumber += delta;     
-            }
-        }
-
-        
+        amountOfTimelineMarkers = 0;
+        Debug.Log("currFromTime " + currentFromTimeClamp);
+        Debug.Log("currToTime " + currentToTimeClamp);
+        float currentNumber = currentFromTimeClamp;
         // difference is a bad idea / better to count how many integers are here
         timelineDelta = (timelineTrackUVwidth) / (timeline.timelineMaximumTime / 2);
 
-        foreach(TimelineTrackMarker t in timelineTrackMarkers)
+
+        float timelineStartCoordinate;
+        if (currentNumber != Mathf.FloorToInt(currentNumber)) {
+            // convert currentNumber to timelineCoordinate
+            int nextNumber = Mathf.FloorToInt(currentNumber) + 1;
+
+            float nextIntegerTimelineMarkerCoordinate = timeline.ConvertFromTimeToTimelineZPosition(nextNumber);
+            Debug.Log("next Integer Timeline marker " + nextIntegerTimelineMarkerCoordinate);
+            timelineStartCoordinate = nextIntegerTimelineMarkerCoordinate;
+            Debug.Log("Our start coordinate is not at clamp" + timelineStartCoordinate);
+        }
+        else
+        {
+            timelineStartCoordinate = trackSectionOriginX;
+            Debug.Log("Our start coordinate is at clamp" + timelineStartCoordinate);
+            amountOfTimelineMarkers += 1;
+            currentNumber += 1;
+        }
+
+        while (currentNumber <= currentToTimeClamp)
+        {
+            Debug.Log("currNumber " + currentNumber + "amountofTimelineMarkers " + amountOfTimelineMarkers);
+            if (currentNumber == Mathf.RoundToInt(currentNumber))
+            {
+                amountOfTimelineMarkers += 1;
+                currentNumber += 1;
+            }
+            else
+            {
+                Debug.Log("ok time to add");
+                currentNumber = (Mathf.RoundToInt(currentNumber) + 1);
+                Debug.Log("added" + currentNumber);
+            }
+        }
+
+
+        Debug.Log("timelineMarkerCount " + amountOfTimelineMarkers);
+
+
+        foreach (TimelineTrackMarker t in timelineTrackMarkers)
         {
             Destroy(t.gameObject);
         }
 
         timelineTrackMarkers = new TimelineTrackMarker[Mathf.FloorToInt(amountOfTimelineMarkers)];
-
-        // the z coordinate is dependent upon which time cordinate we are starting with 
-
-        // we need to convert currentFromTimeSpace to timeline local position 
-        float timelineStartCoordinate = timelineDelta * Mathf.FloorToInt(currentFromTimeClamp);
-
-        // you may not have all the markers 
-
-        // 0 // 1 // 2 // 3 // 4 
-
-        
 
         for (int i = 0; i < timelineTrackMarkers.Length; i++)
         {
@@ -400,9 +437,29 @@ public class TimelineTrackSectionRenderer : ScriptableObject
             timelineTrackMarkers[i] = t;
 
             // center coord of timeline track + amount of y needed to get to top of timeline renderer + amount o
-            t.transform.localPosition = new Vector3(0.2f, trackSectionOriginY, trackSectionOriginX + i * timelineDelta);
+            t.transform.localPosition = new Vector3(0.2f, trackSectionOriginY, timelineStartCoordinate + i * timelineDelta);
             t.transform.localScale = new Vector3(1 / t.transform.parent.localScale.x, 1 / t.transform.parent.localScale.y, 1 / t.transform.parent.localScale.z);
         }
+
+    }
+
+    public void recalculateTimelineTickerPosition()
+    {
+        // first - check if the current time is within the clamp
+        if (timeline.timelineTicker.currentTime < currentFromTimeClamp | timeline.timelineTicker.currentTime > currentToTimeClamp)
+        {
+            timeline.timelineTicker.gameObject.SetActive(false);
+        }
+        // if no, make the timeline ticker inactve
+        else
+        {
+            timeline.timelineTicker.gameObject.SetActive(true);
+            // first get the transform local position of the current local time
+            float newTimelinePosZ = timeline.timelineTicker.currentTime - (timeline.TimelineHalfWidth - timeline.TimelineOwnerWidth) * timeline.ratioBtwnMaxWidthAndMaxTime - currentFromTimeClamp;
+            Vector3 newTimelinePos = new Vector3(timeline.timelineTicker.transform.localPosition.x, timeline.timelineTicker.transform.localPosition.y, newTimelinePosZ);
+            timeline.timelineTicker.transform.localPosition = newTimelinePos;
+        }
+        // if yes, generate new position 
 
     }
 

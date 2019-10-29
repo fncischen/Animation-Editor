@@ -24,6 +24,7 @@ public class Timeline : MonoBehaviour
     public TimelineTrackSectionRenderer trackSectionData;
     public TimelineTrackOwner timelineOwner;
     public TimelineMenu timelineMenu;
+    public TimelineScrollBar timelineScrollBar; 
 
     public bool isTimelineActivated = false;
 
@@ -134,8 +135,8 @@ public class Timeline : MonoBehaviour
 
         SetUpPlayableGraph();
         SetupTimelineScriptableObjs();
-        SetUpTimelineTrackCoordinates();
         SetUpTimelineUVCoordinates();
+        SetUpTimelineTrackCoordinates();
         SetUpTimelineTrackMarkers();
     }
 
@@ -158,7 +159,7 @@ public class Timeline : MonoBehaviour
 
     public void SetUpTimelineTrackCoordinates()
     {
-        // this is for clamping and positioning purposes 
+         // this is for clamping and positioning purposes 
         timelineHalfWidth = GetComponent<Collider>().bounds.size.z / 2 / transform.localScale.z;
         timelineFullWidth = timelineHalfWidth * 2;
 
@@ -172,10 +173,10 @@ public class Timeline : MonoBehaviour
 
         // widths established;
 
-        timelineTrackWidth = TimelineFullWidth * timelineTracksWidthRatio;
+        timelineTrackWidth = trackFaceUVs[0].x - trackFaceUVs[1].x;
         timelineOwnersWidth = TimelineFullWidth * timelineTrackOwnerWidthRatio;
 
-        ratioBtwnMaxWidthAndMaxTime = timelineMaximumTime / timelineTrackWidth;
+        ratioBtwnMaxWidthAndMaxTime = (timelineMaximumTime / 2) / timelineTrackWidth;
 
         float timelineTrackSectionOriginX = transform.localPosition.z - TimelineHalfWidth + timelineOwnersWidth;
         float timelineTrackSectionOriginY = transform.localPosition.y + timelineHalfHeight - menuHeight;
@@ -224,8 +225,15 @@ public class Timeline : MonoBehaviour
         /// -6 -3 0 --> -3 0 3 
         /// shift the 0 position -  
 
-        timelineTicker.currentTime = (timelineTicker.transform.localPosition.z + (TimelineHalfWidth - TimelineOwnerWidth)) * ratioBtwnMaxWidthAndMaxTime;
-        timelineTicker.currentTime = Mathf.Clamp(timelineTicker.currentTime, 0, timelineMaximumTime);
+        timelineTicker.currentTime = (timelineTicker.transform.localPosition.z + (TimelineHalfWidth - TimelineOwnerWidth)) * ratioBtwnMaxWidthAndMaxTime + trackSectionData.currentFromTimeClamp;
+        timelineTicker.currentTime = Mathf.Clamp(timelineTicker.currentTime, trackSectionData.currentFromTimeClamp, trackSectionData.currentToTimeClamp);
+    }
+
+    public float ConvertFromTimeToTimelineZPosition(float time)
+    {
+        float z;
+        z = (time - trackSectionData.currentFromTimeClamp) / ratioBtwnMaxWidthAndMaxTime - (TimelineHalfWidth - timelineOwnersWidth);
+        return z; 
     }
 
     #endregion
