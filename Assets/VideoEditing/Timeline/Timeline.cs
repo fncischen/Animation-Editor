@@ -22,53 +22,26 @@ public class Timeline : MonoBehaviour
     public PlayableGraph pg;
 
     public TimelineTrackSectionRenderer trackSectionData;
-    public TimelineTrackOwner timelineOwner;
-    public TimelineMenu timelineMenu;
     public TimelineScrollBar timelineScrollBar; 
 
     public bool isTimelineActivated = false;
 
-    public delegate void TimelineTrackEvents();
-    public TimelineTrackEvents onZoomIn;
-    public TimelineTrackEvents onZoomOut;
-    public TimelineTrackEvents onAnimationPlay;
+    public Transform trackSectionOrigin;
+    public Transform trackOwnerOrigin;
+    public Transform trackSectionHeight;
+    public Transform trackMarkersHeight; 
 
     public delegate void BeizerCurveEvent();
     public TimelineTicker timelineTicker;
 
-    public delegate void TimelineMenuEvent();
-    public TimelineMenuEvent OnSave;
-    public TimelineMenuEvent OnUndo;
-    public TimelineMenuEvent OnRedo;
-
     public List<AnimationTrack> tracks;
 
-    public GameObject timelineMarker;
-    public Canvas timelineCanvas;
     public AnimationTrack trackPrefab;
-    public GameObject t_preFab;
-    public GameObject keyframePrefab;
-    public GameObject timelineTrackMarkerPrefab;
+    public VideoKeyFrame keyframePrefab;
+    public TimelineTrackMarker timelineTrackMarkerPrefab;
+    public TimelineTrackOwner timelineTrackOwnerPrefab; 
 
-    private float timelineHalfWidth;
-    private float timelineFullWidth;
-    private float timelineHalfHeight;
-    private float timelineFullHeight;
-    private float trackHeight;
-
-    public GameObject currentlySelectedTrack;
-    private float timelineTrackHeight;
-    private float timelineTrackSeperators; 
-
-    // allow for manipulation during editor
-    [Range(0, 1)]
-    public float timelineTracksWidthRatio;
-    [Range(0, 1)]
-    public float timelineTrackOwnerWidthRatio;
-    [Range(0, 1)]
-    public float timelineTrackSectionHeightRatio;
-    [Range(0, 1)]
-    public float timelineOptionsSectionHeightRatio;
+    public AnimationTrack currentlySelectedTrack;
 
     // assuming 0,0 is in the top left coordinate system
     private float menuHeight;
@@ -76,39 +49,37 @@ public class Timeline : MonoBehaviour
     private float timelineOwnersWidth;
     private float timelineTrackWidth;
 
-    // make 0,0 at the timeline space
-    private float menuHeightInTimelineSpace;
-    private float timelineTrackSectionHeightInTimelineSpace;
-    private float timelineOwnersHeightInTimelineSpace;
-    private float timelineTrackWidthInTimelineSpace;
-
     // UV coordinates for 
     private Mesh timelineTrackMesh;
-    public Vector2[] trackPrefabUVs;
-    public Vector2[] trackFaceUVs;
+    private Vector2[] trackPrefabUVs;
+    private Vector2[] trackFaceUVs;
     public int[] trackUVindices = new int[4]; 
 
-    public float TimelineHalfWidth
+    public Vector2[] TrackPrefabUVs
     {
-        get { return timelineHalfWidth; }
+        get { return trackPrefabUVs; }
     }
 
-    public float TimelineFullWidth
+    public Vector2[] TrackFaceUVs
     {
-        get { return timelineFullWidth;  }
-    }
-
-    public float TimelineOwnerWidth
-    {
-        get { return timelineOwnersWidth; }
+        get { return trackFaceUVs; }
     }
 
     /// <summary>
     /// Maximum length of animation clip;
     /// </summary>
     public float timelineMaximumTime;
-    public float ratioBtwnMaxWidthAndMaxTime;
+    private float ratioBtwnMaxWidthAndMaxTime;
 
+    public float RatioBtwnMaxWdithAndMaxTime
+    {
+        get { return ratioBtwnMaxWidthAndMaxTime; }
+    }
+
+    public float TimelineTrackWidth
+    {
+        get { return timelineTrackWidth; }
+    }
     #endregion
 
     // click on Timeline and tap twice in order to activate the timeline 
@@ -138,6 +109,7 @@ public class Timeline : MonoBehaviour
         SetUpTimelineUVCoordinates();
         SetUpTimelineTrackCoordinates();
         SetUpTimelineTrackMarkers();
+        CalculateTimelineTickerPosition();
     }
 
     // are these values sent to each respective TimelineComponent? 
@@ -148,53 +120,23 @@ public class Timeline : MonoBehaviour
 
     public void SetupTimelineScriptableObjs()
     {
-        timelineMenu = GetComponent<TimelineMenu>();
         trackSectionData = ScriptableObject.CreateInstance<TimelineTrackSectionRenderer>();
-        timelineOwner = ScriptableObject.CreateInstance<TimelineTrackOwner>();
-
-        timelineMenu.timeline = this;
         trackSectionData.timeline = this;
-        timelineOwner.timeline = this; 
+
     }
 
     public void SetUpTimelineTrackCoordinates()
     {
-         // this is for clamping and positioning purposes 
-        timelineHalfWidth = GetComponent<Collider>().bounds.size.z / 2 / transform.localScale.z;
-        timelineFullWidth = timelineHalfWidth * 2;
-
-        timelineHalfHeight = GetComponent<Collider>().bounds.size.y / 2 / transform.localScale.y;
-        timelineFullHeight = timelineHalfHeight * 2;
-
         // heights established;
-
-        menuHeight = timelineFullHeight * timelineOptionsSectionHeightRatio;
-        timelineTrackSectionHeight = timelineFullHeight * timelineTrackSectionHeightRatio;
+        menuHeight = ( trackSectionOrigin.localPosition.y - trackSectionHeight.localPosition.y);
+        timelineTrackSectionHeight = (trackSectionOrigin.localPosition.y - trackSectionHeight.localPosition.y);
 
         // widths established;
-
         timelineTrackWidth = trackFaceUVs[0].x - trackFaceUVs[1].x;
-        timelineOwnersWidth = TimelineFullWidth * timelineTrackOwnerWidthRatio;
-
-        ratioBtwnMaxWidthAndMaxTime = (timelineMaximumTime / 2) / timelineTrackWidth;
-
-        float timelineTrackSectionOriginX = transform.localPosition.z - TimelineHalfWidth + timelineOwnersWidth;
-        float timelineTrackSectionOriginY = transform.localPosition.y + timelineHalfHeight - menuHeight;
-
-        float timelineMenuSectionOriginX = transform.localPosition.z - TimelineHalfWidth;
-        float timelineMenuSectionOriginY = transform.localPosition.y + timelineHalfHeight;
-
-        float timelineOwnerOriginX = transform.localPosition.z - TimelineHalfWidth;
-        float timelineOwnerOriginY = transform.localPosition.y + timelineHalfHeight - menuHeight;
-
-        timelineTrackHeight = (GetComponent<Collider>().bounds.size.y / 2 / transform.localScale.y);
+        ratioBtwnMaxWidthAndMaxTime = ((timelineMaximumTime / 2) / timelineTrackWidth) * transform.localScale.x;
 
         // instantiate coordiante system here
-        trackSectionData.SetUpTimelineTrackSectionParameters(timelineTrackSectionOriginX, timelineTrackSectionOriginY);
-        timelineOwner.SetupTimelineTrackOwnerParameters(timelineOwnerOriginX, timelineOwnerOriginY);
-        timelineMenu.SetupTimelineMenuParameters(timelineMenuSectionOriginX, timelineMenuSectionOriginY);
-
-
+        trackSectionData.SetUpTimelineTrackSectionParameters(trackSectionOrigin.localPosition.x, trackSectionOrigin.localPosition.y);
     }
 
     public void SetUpTimelineUVCoordinates()
@@ -213,26 +155,20 @@ public class Timeline : MonoBehaviour
 
     public void SetUpTimelineTrackMarkers()
     {
-        trackSectionData.initializeTimelineTrackMarkers();
+        float trackMarkersPosY = trackMarkersHeight.localPosition.y; 
+        trackSectionData.initializeTimelineTrackMarkers(trackMarkersPosY);
     }
 
     public void CalculateTimelineTickerPosition()
     {
-        // we need to convert this to timeline track space, not timeline space
-
-        ///  0 ----- 3 
-        /// -3 ----- 0 
-        /// -6 -3 0 --> -3 0 3 
-        /// shift the 0 position -  
-
-        timelineTicker.currentTime = (timelineTicker.transform.localPosition.z + (TimelineHalfWidth - TimelineOwnerWidth)) * ratioBtwnMaxWidthAndMaxTime + trackSectionData.currentFromTimeClamp;
+        timelineTicker.currentTime = (- timelineTicker.transform.localPosition.x + (trackSectionOrigin.localPosition.x)) * ratioBtwnMaxWidthAndMaxTime + trackSectionData.currentFromTimeClamp;
         timelineTicker.currentTime = Mathf.Clamp(timelineTicker.currentTime, trackSectionData.currentFromTimeClamp, trackSectionData.currentToTimeClamp);
     }
 
     public float ConvertFromTimeToTimelineZPosition(float time)
     {
         float z;
-        z = (time - trackSectionData.currentFromTimeClamp) / ratioBtwnMaxWidthAndMaxTime - (TimelineHalfWidth - timelineOwnersWidth);
+        z = -1 * (time - trackSectionData.currentFromTimeClamp) / ratioBtwnMaxWidthAndMaxTime + (trackSectionOrigin.localPosition.x);
         return z; 
     }
 

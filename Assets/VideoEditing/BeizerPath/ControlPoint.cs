@@ -35,23 +35,15 @@ public class ControlPoint : BeizerPoint
                 gimbals.interactableObj = this;
                 gimbals.animObj = null; 
                 gimbals.transform.position = transform.position;
-                foreach (AnimatedGimbal gimbal in gimbals.gimbals)
-                {
-                    gimbal.gameObject.SetActive(true);
-                }
+                gimbals.ActivateTransformGimbals();
                 SubscribeToGimbalEvents();
              }
             else
              {
                 gimbals.gameObject.SetActive(false);
                 gimbals.animObj = null;
-                gimbals.interactableObj = null; 
-                foreach (AnimatedGimbal gimbal in gimbals.gimbals)
-                {
-                    gimbal.gameObject.SetActive(false);
-                    objMenu.gameObject.SetActive(false);
-                }
-
+                gimbals.interactableObj = null;
+                gimbals.deactivateAllGimbals(); 
                 UnsubscribeToGimbalEvents();
             }
      }

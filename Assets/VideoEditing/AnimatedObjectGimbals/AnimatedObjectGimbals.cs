@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class AnimatedObjectGimbals : MonoBehaviour
 {
@@ -14,6 +15,11 @@ public class AnimatedObjectGimbals : MonoBehaviour
     public AnimatedGimbal gimbalRotateX;
     public AnimatedGimbal gimbalRotateY;
     public AnimatedGimbal gimbalRotateZ;
+
+    public Button activateTransformGimbalsButton;
+    public Button activateRotationGimbalsButton;
+    public Button saveBeizerCurveButton; // for the purposes of saving it on a curve
+    public Button switchCurveButton; 
 
     public AnimatedObjectMenu objMenu;
 
@@ -78,5 +84,108 @@ public class AnimatedObjectGimbals : MonoBehaviour
                 currentlySelectedGimbal = hit.collider.GetComponent<AnimatedGimbal>();
             } 
         } 
+    }
+
+    public void ActivateGimbalButtons() 
+    {
+        activateTransformGimbalsButton.gameObject.SetActive(true);
+        activateRotationGimbalsButton.gameObject.SetActive(true);
+    }
+
+    public void DeactivateGimbalButtons()
+    {
+        activateTransformGimbalsButton.gameObject.SetActive(false);
+        activateRotationGimbalsButton.gameObject.SetActive(false);
+    }
+    public void ActivateTransformGimbals()
+    {
+        if(gimbalRotateX.gameObject.activeSelf & gimbalRotateY.gameObject.activeSelf & gimbalRotateZ.gameObject.activeSelf)
+        {
+            gimbalRotateX.gameObject.SetActive(false);
+            gimbalRotateY.gameObject.SetActive(false);
+            gimbalRotateZ.gameObject.SetActive(false);
+
+        }
+
+        gimbalX.gameObject.SetActive(true);
+        gimbalY.gameObject.SetActive(true);
+        gimbalZ.gameObject.SetActive(true);
+    }
+
+    public void ActivateRotationGimbals()
+    {
+        if (gimbalX.gameObject.activeSelf & gimbalY.gameObject.activeSelf & gimbalZ.gameObject.activeSelf)
+        {
+            gimbalX.gameObject.SetActive(false);
+            gimbalY.gameObject.SetActive(false);
+            gimbalZ.gameObject.SetActive(false);
+        }
+
+        gimbalRotateX.gameObject.SetActive(true);
+        gimbalRotateY.gameObject.SetActive(true);
+        gimbalRotateZ.gameObject.SetActive(true);
+    }
+
+    public void deactivateAllGimbals()
+    {
+        gimbalX.gameObject.SetActive(false);
+        gimbalY.gameObject.SetActive(false);
+        gimbalZ.gameObject.SetActive(false);
+
+        gimbalRotateX.gameObject.SetActive(false);
+        gimbalRotateY.gameObject.SetActive(false);
+        gimbalRotateZ.gameObject.SetActive(false);
+    }
+
+    public void ActivateGimbalMenu()
+    {
+        objMenu.gameObject.SetActive(true);
+    }
+
+    public void DeactivateGimbalMenu()
+    {
+        objMenu.gameObject.SetActive(false);
+
+    }
+
+    public void ActivateBeizerRelatedButtons()
+    {
+        saveBeizerCurveButton.gameObject.SetActive(true);
+        switchCurveButton.gameObject.SetActive(true);
+    }
+
+    public void deactivateBeizerRelatedButtons()
+    {
+        saveBeizerCurveButton.gameObject.SetActive(false);
+        switchCurveButton.gameObject.SetActive(false);
+    }
+
+    public void saveBeizerCurve()
+    {
+        animObj.beizerPathGroup.beizerPathData.saveUpdatedBeizerCurve();
+    }
+
+    public void toggleSwitchCurve()
+    {
+        if (animObj.IsBeizer)
+        {
+            switchCurveToLinear();
+            animObj.IsBeizer = false;
+        }
+        else
+        {
+            switchCurveToBeizer();
+            animObj.IsBeizer = true; 
+        }
+    }
+
+    public void switchCurveToBeizer()
+    {
+        animObj.animTrack.SetAnimationCurveToBeizerCurve();
+    }
+
+    public void switchCurveToLinear()
+    {
+        animObj.animTrack.UpdateCurve();
     }
 }

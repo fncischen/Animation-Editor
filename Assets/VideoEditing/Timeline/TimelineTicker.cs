@@ -12,7 +12,7 @@ public class TimelineTicker : MonoBehaviour
 
     public void OnEnable()
     {
-        timeline.CalculateTimelineTickerPosition();
+        // timeline.CalculateTimelineTickerPosition();
     }
     public void Update()
     {
@@ -38,9 +38,11 @@ public class TimelineTicker : MonoBehaviour
         
         // convert to local position 
         timeline.transform.InverseTransformPoint(transform.position);
-        float clampedZ = Mathf.Clamp(transform.localPosition.z, -timeline.TimelineHalfWidth + timeline.TimelineOwnerWidth, timeline.TimelineHalfWidth);
-
-        transform.localPosition = new Vector3(2f, 0.15f, clampedZ);
+        float timelineTrackDistance = (-timeline.TimelineTrackWidth/timeline.transform.localScale.x + timeline.trackSectionOrigin.localPosition.x);
+        float clampedX = Mathf.Clamp(transform.localPosition.x,timelineTrackDistance, timeline.trackSectionOrigin.localPosition.x);
+        Debug.Log("localPositionX " + transform.localPosition.x);
+        Debug.Log("trackSectionOrigin " + timeline.trackSectionOrigin.localPosition.x + " trackWidth " + timelineTrackDistance);
+        transform.localPosition = new Vector3(clampedX, timeline.trackMarkersHeight.localPosition.y, 0.4f/timeline.transform.localScale.z);
 
         timeline.CalculateTimelineTickerPosition();
     }

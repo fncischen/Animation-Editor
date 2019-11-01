@@ -21,4 +21,13 @@ public class BeizerPathGroup : MonoBehaviour
 
 
     }
+
+    public void ResetBeizerPathCurves()
+    {
+        beizerPathData.beizerPoints = new List<BeizerPoint>();
+
+        beizerPathData.curveXbeizer = new AnimationCurve();
+        beizerPathData.curveYbeizer = new AnimationCurve();
+        beizerPathData.curveZbeizer = new AnimationCurve();
+    }
 }

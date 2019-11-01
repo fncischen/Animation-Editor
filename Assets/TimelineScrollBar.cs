@@ -6,9 +6,12 @@ public class TimelineScrollBar : MonoBehaviour
 {
     // Start is called before the first frame update
     public Timeline timeline;
+    public GameObject scrollBox; 
 
     private Vector3 prevPos;
     private Vector3 currPos;
+
+
 
     Vector3 offset;
     Vector3 screenPos;
@@ -30,21 +33,23 @@ public class TimelineScrollBar : MonoBehaviour
 
         // convert to local position 
         timeline.transform.InverseTransformPoint(transform.position);
-        float clampedZ = Mathf.Clamp(transform.localPosition.z, -timeline.TimelineHalfWidth + timeline.TimelineOwnerWidth, timeline.TimelineHalfWidth);
+        float timelineTrackDistance = (-timeline.TimelineTrackWidth / timeline.transform.localScale.x + timeline.trackSectionOrigin.localPosition.x);
+        float clampedX = Mathf.Clamp(transform.localPosition.x, timelineTrackDistance, timeline.trackSectionOrigin.localPosition.x);
 
-        transform.localPosition = new Vector3(2f, 0.15f, clampedZ);
+        transform.localPosition = new Vector3(clampedX, scrollBox.transform.localPosition.y, 0.001f);
         currPos = transform.localPosition;
 
-        if (currPos.z > prevPos.z)
+        if (currPos.x < prevPos.x)
         {
             Debug.Log("scroll right");
-            float delta = Mathf.Abs(currPos.z - prevPos.z); 
+            float delta = Mathf.Abs(currPos.x - prevPos.x)*100;
             timeline.trackSectionData.ScrollRight(delta);
         }
-        else if (currPos.z < prevPos.z)
+        else if (currPos.x > prevPos.x)
         {
             Debug.Log("scroll left");
-            float delta = Mathf.Abs(currPos.z - prevPos.z);
+            float delta = Mathf.Abs(currPos.x - prevPos.x)*100;
+
             timeline.trackSectionData.ScrollLeft(delta);
 
         }

@@ -35,8 +35,10 @@ public class AnimationTrack : MonoBehaviour
 
     // might be easier to use the videoKeyFrames asset 
     public List<VideoKeyFrame> videoKeyFrames;
-    public AnimCurve animCurve;
+    public VideoKeyFrame[] currentlyRenderedKeyframes; 
 
+    public AnimCurve animCurve;
+    public TimelineTrackOwner timelineTrackOwner; 
     // call this when the path or timeline track has been modified -> we only need the index of they keyframe 
 
     // this event is sent here AFTER the curve has been updated
@@ -59,6 +61,7 @@ public class AnimationTrack : MonoBehaviour
     #endregion
     private void Awake()
     {
+
     }
 
     public void SubscribeToAnimationEvents()
@@ -90,12 +93,9 @@ public class AnimationTrack : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(0))
         {
-            Debug.Log("selecting!");
-            Debug.Log(gameObject.name);
-            if (timeline.currentlySelectedTrack != gameObject)
+            if (timeline.currentlySelectedTrack != this)
             {
-                Debug.Log("Select this!");
-                timeline.currentlySelectedTrack = gameObject;
+                timeline.currentlySelectedTrack = this;
                 ToggleAnimationTrackMaterial();
                 foreach (AnimatedGimbal gimbal in animatedObject.gimbals.gimbals)
                 {
@@ -105,7 +105,6 @@ public class AnimationTrack : MonoBehaviour
             }
             else
             {
-                Debug.Log("Unselect this!");
                 timeline.currentlySelectedTrack = null;
                 ToggleAnimationTrackMaterial();
                 foreach (AnimatedGimbal gimbal in animatedObject.gimbals.gimbals)
@@ -197,8 +196,8 @@ public class AnimationTrack : MonoBehaviour
         clip = c; 
     }
 
-    #endregion
-    public void UpdateCurve(AnimCurve animCurve)
+ 
+    public void UpdateCurve()
     {
         clip.SetCurve("", typeof(Transform), "localPosition.x", animCurve.curveX);
         clip.SetCurve("", typeof(Transform), "localPosition.y", animCurve.curveY);
@@ -207,58 +206,60 @@ public class AnimationTrack : MonoBehaviour
         clip.SetCurve("", typeof(Transform), "localRotation.x", animCurve.rotationXcurve);
         clip.SetCurve("", typeof(Transform), "localRotation.y", animCurve.rotationYcurve);
         clip.SetCurve("", typeof(Transform), "localRotation.z", animCurve.rotationZcurve);
-    }
-    public void SelectKeyframeUI(Keyframe keyframe, AnimationCurveToUpdate curve)
-    {
-        // first --> check if this keyframe exists 
-        foreach (VideoKeyFrame videoKeyframe in videoKeyFrames)
-        {
-            // first check the time to see if the keyframe time matches the video keyframe
-            if (keyframe.time == videoKeyframe.keyframeTime)
-            {
-                currentlySelectedKeyframe = keyframe;
-                currentlySelectedVideoKeyframe = videoKeyframe;
-                break;
-            }
-        }
-    }
+    }   
 
-    public void DeselectKeyframeUI()
+    // invoke from buttons
+    public void SetAnimationCurveToBeizerCurve()
     {
-        currentlySelectedKeyframe = default(Keyframe);
-        currentlySelectedVideoKeyframe = null; 
+        clip.SetCurve("", typeof(Transform), "localPosition.x", animatedObject.beizerPathGroup.beizerPathData.curveXbeizer);
+        clip.SetCurve("", typeof(Transform), "localPosition.y", animatedObject.beizerPathGroup.beizerPathData.curveYbeizer);
+        clip.SetCurve("", typeof(Transform), "localPosition.z", animatedObject.beizerPathGroup.beizerPathData.curveZbeizer);
+
+        clip.SetCurve("", typeof(Transform), "localRotation.x", animCurve.rotationXcurve);
+        clip.SetCurve("", typeof(Transform), "localRotation.y", animCurve.rotationYcurve);
+        clip.SetCurve("", typeof(Transform), "localRotation.z", animCurve.rotationZcurve);
     }
+    
+    #endregion
+
     // these are timeline methods
 
     #region keyframe UI Manipulation methods
 
     // invoke when zooming in, zooming out, or retrieving a timeline with saved keyframes
-    public void GenerateKeyframeUI()
+    public void UpdateKeyframeUI()
     {
+        float fromTimeClamp = timeline.trackSectionData.currentFromTimeClamp;
+        float toTimeClamp = timeline.trackSectionData.currentToTimeClamp;
 
-        // think of the coordinate system
-        float zPosOfTrack = transform.localPosition.z;
-        
-        // there is a chance that this is right of 0,0
-
-
-        // float keyframePositionInTimelineTrackSpace = (timeline.timelineTicker.transform.localPosition.z + (timeline.TimelineHalfWidth - timeline.TimelineOwnerWidth)) * timeline.ratioBtwnMaxWidthAndMaxTime;
-        // timeline space
-        foreach (VideoKeyFrame vk in videoKeyFrames)
+        List<VideoKeyFrame> videoKeyFramesInClampedTime = new List<VideoKeyFrame>();
+        foreach(VideoKeyFrame vk in videoKeyFrames)
         {
-            // this is accessible due to the properties already set by videokeyframe
-            VideoKeyFrame keyframe = Instantiate(vk, transform);
-
-            float currTime = keyframe.keyframeTime;
-            // check what the time is from the keyframe
-
-            // if the keyframe time is within the clamp, we can instantiate it
-            if (isTimeWithinTimelineClampedTime(currTime))
+            if(isTimeWithinTimelineClampedTime(vk.keyframeTime))
             {
-                keyframe.transform.localPosition = timelinePositionAtKeyframeTime(currTime);
+                vk.gameObject.SetActive(true);
+                videoKeyFramesInClampedTime.Add(vk);
+            }
+            else
+            {
+                vk.gameObject.SetActive(false);
             }
         }
-        
+
+        currentlyRenderedKeyframes = new VideoKeyFrame[videoKeyFramesInClampedTime.Count];
+
+        for(int i = 0; i < currentlyRenderedKeyframes.Length; i++)
+        {
+            currentlyRenderedKeyframes[i] = videoKeyFramesInClampedTime[i];
+        }
+
+        for(int i =0; i < currentlyRenderedKeyframes.Length; i++)
+        {
+            // float timeCoordinate = timeline.ConvertFromTimeToTimelineZPosition(currentlyRenderedKeyframes[i].keyframeTime);
+            currentlyRenderedKeyframes[i].transform.localPosition = trackPositionAtKeyframeTime(currentlyRenderedKeyframes[i].keyframeTime);
+            currentlyRenderedKeyframes[i].transform.localScale = timeline.keyframePrefab.transform.localScale;
+        }
+                
     }
 
     /// <summary>
@@ -266,18 +267,8 @@ public class AnimationTrack : MonoBehaviour
     /// </summary>
     public void ZoomInZoomOutKeyframeUI() 
      {
-        DestoryExistingKeyframesUI();
-        GenerateKeyframeUI();
+        UpdateKeyframeUI();
      } 
-
-
-    public void DestoryExistingKeyframesUI()
-    {
-        foreach(VideoKeyFrame vk in videoKeyFrames)
-        {
-            Destroy(vk.gameObject);
-        }
-    }
 
     // question - should this be invoked after the keyframe has been added to the curve? - answer, YES, after anim Curve has completed curve data update for all 3 positions
     
@@ -289,11 +280,20 @@ public class AnimationTrack : MonoBehaviour
             Destroy(videoKeyFrames[keyframeIndex].gameObject);
            
         } 
-            GameObject keyframeObj = Instantiate(timeline.keyframePrefab, transform.parent);
+            GameObject keyframeObj = Instantiate(timeline.keyframePrefab.gameObject, transform);
             newK = keyframeObj.GetComponent<VideoKeyFrame>();
             newK.keyframeTime = time; 
-
             videoKeyFrames.Add(newK);
+
+            if(!isTimeWithinTimelineClampedTime(newK.keyframeTime))
+            {
+                newK.gameObject.SetActive(false);    
+            }
+            else
+            {
+                UpdateKeyframeUI();
+            }
+
 
             sortVideoKeyframesByTime(); // ensure the correct indices in the track for proper retrival of keyframes
 
@@ -310,15 +310,6 @@ public class AnimationTrack : MonoBehaviour
             newK.keyframeYindex = keyframePosIndexY;
             newK.keyframeZindex = keyframePosIndexZ;
 
-         
-        if (isTimeWithinTimelineClampedTime(time))
-         {
-            newK.transform.localPosition = timelinePositionAtKeyframeTime(time);
-         }
-        else
-        {
-            keyframeObj.SetActive(false);
-        }
 
     }
 
@@ -390,9 +381,29 @@ public class AnimationTrack : MonoBehaviour
         // to change the motion
     }
 
-    public void RemoveKeyFrameUI(int keyframeIndex, float newTime, AnimationCurveToUpdate curve)
+    public void RemoveKeyFrameUI(VideoKeyFrame vk)
     {
+
+        videoKeyFrames.Remove(vk);
+        
+        animCurve.RemoveKeyFrameFromCurve(vk.keyframeXindex,AnimationCurveToUpdate.x);
+        animCurve.RemoveKeyFrameFromCurve(vk.keyframeYindex, AnimationCurveToUpdate.y);
+        animCurve.RemoveKeyFrameFromCurve(vk.keyframeZindex, AnimationCurveToUpdate.z);
+        animCurve.RemoveKeyFrameFromCurve(vk.keyframeRotateXindex, AnimationCurveToUpdate.rotationX);
+        animCurve.RemoveKeyFrameFromCurve(vk.keyframeRotateYindex, AnimationCurveToUpdate.rotationY);
+        animCurve.RemoveKeyFrameFromCurve(vk.keyframeRotateZindex, AnimationCurveToUpdate.rotationZ);
+
+        // remove from beizer curve as well 
+        animatedObject.beizerPathGroup.beizerPathData.removeControlPoint(vk);
+
+        Destroy(vk.gameObject);
+
+        UpdateCurve();
+        UpdateKeyframeUI();
         sortVideoKeyframesByTime();
+        
+        // remove the beizerPoint
+    
     }
 
     #endregion
@@ -480,11 +491,11 @@ public class AnimationTrack : MonoBehaviour
         return false; 
     }
 
-    public Vector3 timelinePositionAtKeyframeTime(float currTime)
+    public Vector3 trackPositionAtKeyframeTime(float currTime)
     {
-       float xPos = 2f; // extrude outwards 
+       float xPos = 0.002f/transform.localScale.x; // extrude outwards 
        float yPos = 0f; // because we want this to be at center of the animation track
-       float zPos = currTime - (timeline.TimelineHalfWidth - timeline.TimelineOwnerWidth) * timeline.ratioBtwnMaxWidthAndMaxTime;// we are going backwards 
+       float zPos = currTime - ((GetComponent<Collider>().bounds.size.z) / 2) - timeline.trackSectionData.currentFromTimeClamp;// assume pivot point at center of animation track  
 
        return new Vector3(xPos, yPos, zPos);
     }

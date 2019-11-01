@@ -14,7 +14,6 @@ public class AnimatedObject : InteractableObject
 {
     public AnimationTrack animTrack;
     public AnimatedObjectGimbals gimbals;
-    public bool objectSelected;
     public Timeline timeline; 
 
     public delegate void AnimatedObjectUpdatedEvent(Keyframe keyframe, AnimationCurveToUpdate curve);
@@ -23,6 +22,13 @@ public class AnimatedObject : InteractableObject
     public AnimatedObjectUpdatedEvent onObjectUpated;
     public AnimatedObjectUpdatedEvent onObjectRemoved;
 
+    private bool isBeizer;
+
+    public bool IsBeizer
+    {
+        get { return isBeizer; }
+        set { isBeizer = value; }
+    }
     // is this going to be sent to the 
 
     // toggle on and off on click to add keyframe 
@@ -34,12 +40,13 @@ public class AnimatedObject : InteractableObject
         // gimbals.enabled = false;
         gimbals = AnimatedObjectGimbals.Instance;
         objMenu.gameObject.SetActive(false);
+        isBeizer = false; 
 
     }
 
     public void Update()
     {
-        if(timeline.pg.IsPlaying() && gimbals.gameObject.active && gimbals.animObj ==  this)
+        if(timeline.pg.IsPlaying() && gimbals.gameObject.activeSelf && gimbals.animObj ==  this)
         {
             gimbals.transform.position = transform.position;
         }
@@ -52,28 +59,22 @@ public class AnimatedObject : InteractableObject
         {
             if(gimbals.animObj != this)
             {
-                if (!gimbals.gameObject.active)
+                if (!gimbals.gameObject.activeSelf)
                 {
                     gimbals.gameObject.SetActive(true);
                 }
                 gimbals.animObj = this;
                 gimbals.interactableObj = null; 
                 gimbals.transform.position = transform.position;
-                foreach(AnimatedGimbal gimbal in gimbals.gimbals)
-                {
-                    gimbal.gameObject.SetActive(true);
-                    objMenu.gameObject.SetActive(true);
-                    if(animTrack != null)
-                    {
-                        animTrack.timeline.currentlySelectedTrack = animTrack.gameObject;
-                        animTrack.ToggleAnimationTrackMaterial();
-                        objectSelected = true; 
-                    }
+                gimbals.ActivateGimbalButtons();
+                gimbals.ActivateGimbalMenu();
+                gimbals.ActivateTransformGimbals();
+                gimbals.ActivateBeizerRelatedButtons();
 
-                }
                 if (animTrack != null)
                 {
-                    timeline.currentlySelectedTrack = animTrack.gameObject;
+                    timeline.currentlySelectedTrack = animTrack;                        
+                    animTrack.ToggleAnimationTrackMaterial();
                 }
                 
             }  
@@ -82,21 +83,17 @@ public class AnimatedObject : InteractableObject
                 gimbals.gameObject.SetActive(false);
                 gimbals.animObj = null;
                 gimbals.interactableObj = null;
-                foreach (AnimatedGimbal gimbal in gimbals.gimbals)
-                {
-                    gimbal.gameObject.SetActive(false);
-                    objMenu.gameObject.SetActive(false);
-                    if(animTrack != null)
-                    {
-                        animTrack.timeline.currentlySelectedTrack = null;
-                        animTrack.ToggleAnimationTrackMaterial();
-                        objectSelected = false; 
-                    }
 
-                }
+                gimbals.DeactivateGimbalButtons();
+                gimbals.DeactivateGimbalMenu();
+                gimbals.deactivateAllGimbals();
+                gimbals.deactivateBeizerRelatedButtons();
 
-                timeline.currentlySelectedTrack = null;
-
+                if(animTrack != null)
+                 {
+                    animTrack.timeline.currentlySelectedTrack = null;
+                    animTrack.ToggleAnimationTrackMaterial();
+                 }
             }
         }
     }

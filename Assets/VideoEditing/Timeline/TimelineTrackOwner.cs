@@ -1,16 +1,20 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
 /// Purpose: to identify ownership of each track, and allow for the user to select track
 /// </summary>
-public class TimelineTrackOwner : ScriptableObject
+public class TimelineTrackOwner : MonoBehaviour
 {
-    public Timeline timeline; 
-    // for the timeline track owner, the coord system is at (0-timelineHalfWidth, timelineHalfHeight - menuHeight)
-    public void SetupTimelineTrackOwnerParameters(float originX, float originY)
-    {
+    public Timeline timeline;
+    public AnimationTrack track; 
+    public Text text;
 
+    public void ChangeText(string str)
+    {
+        text.text = str; 
     }
+
 }

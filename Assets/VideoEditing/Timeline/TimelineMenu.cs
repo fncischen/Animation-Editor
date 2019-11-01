@@ -34,7 +34,8 @@ public class TimelineMenu : MonoBehaviour
 
     public void StopTracks()
     {
-        resetClipsToBeginning();
+        timeline.pg.Stop();
+        // resetClipsToBeginning();
     }
 
     public void resetClipsToBeginning()

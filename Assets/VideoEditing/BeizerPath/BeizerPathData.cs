@@ -48,6 +48,15 @@ public class BeizerPathData : ScriptableObject
         realTimeBeizerPoints = beizerPoints;
     }
 
+    public void updateRealTimeBeizerPoints()
+    {
+        realTimeBeizerPoints = new List<BeizerPoint>();
+        foreach(BeizerPoint p in beizerPoints)
+        {
+            realTimeBeizerPoints.Add(p);
+        }
+    }
+
     /// <summary>
     /// This is called after a control point has been moved, but not saved as key frame 
     /// </summary>
@@ -87,24 +96,25 @@ public class BeizerPathData : ScriptableObject
         AnimationCurve curveY = new AnimationCurve();
         AnimationCurve curveZ = new AnimationCurve();
 
+        updateRealTimeBeizerPoints();
+
         // get keyframes ready to set to curve
         Keyframe[] xKeys = new Keyframe[realTimeBeizerPoints.Count];
         Keyframe[] yKeys = new Keyframe[realTimeBeizerPoints.Count];
         Keyframe[] zKeys = new Keyframe[realTimeBeizerPoints.Count];
 
-
         // generate keyframe per position and time
         for(int i = 0; i < realTimeBeizerPoints.Count; i++)
         {
             Vector3 pos = realTimeBeizerPoints[i].transform.position;
-            xKeys[i] = new Keyframe(realTimeBeizerPoints[i].videoKeyframe.keyframeTime, pos.x);
-            yKeys[i] = new Keyframe(realTimeBeizerPoints[i].videoKeyframe.keyframeTime, pos.y);
-            zKeys[i] = new Keyframe(realTimeBeizerPoints[i].videoKeyframe.keyframeTime, pos.z);
+            xKeys[i] = new Keyframe(realTimeBeizerPoints[i].beizerTime, pos.x);
+            yKeys[i] = new Keyframe(realTimeBeizerPoints[i].beizerTime, pos.y);
+            zKeys[i] = new Keyframe(realTimeBeizerPoints[i].beizerTime, pos.z);
 
         }
 
         // set a new list of VideoKeyframes 
-        animTrack.DestoryExistingKeyframesUI();
+        // animTrack.DestoryExistingKeyframesUI();
 
         List<VideoKeyFrame> videoKeyFrames = new List<VideoKeyFrame>();
 
@@ -127,16 +137,19 @@ public class BeizerPathData : ScriptableObject
         /// include place holder and ? -- do we want to have a sepearate method for this -> because it seems much easier just to generate new curve, adjust key frames, etc. 
         /// assess time it takes to create other methods, versus time saved here. 
 
-        animTrack.clip.SetCurve("", typeof(Transform), "localPosition.x", curveX);
-        animTrack.clip.SetCurve("", typeof(Transform), "localPosition.y", curveY);
-        animTrack.clip.SetCurve("", typeof(Transform), "localPosition.z", curveZ);
+        // animTrack.clip.SetCurve("", typeof(Transform), "localPosition.x", curveX);
+        //animTrack.clip.SetCurve("", typeof(Transform), "localPosition.y", curveY);
+        //animTrack.clip.SetCurve("", typeof(Transform), "localPosition.z", curveZ);
 
         // call animTrack to recreate a new list of VideoKeyframes, which are sent from here
-        animTrack.videoKeyFrames = videoKeyFrames;
+        //animTrack.videoKeyFrames = videoKeyFrames;
 
         // we need to save these video key frame positions
-        animTrack.GenerateKeyframeUI();
-        
+        // animTrack.UpdateKeyframeUI();
+
+        curveXbeizer = curveX;
+        curveYbeizer = curveY;
+        curveZbeizer = curveZ;
         
 
     }
@@ -148,7 +161,8 @@ public class BeizerPathData : ScriptableObject
         ControlPoint b = Instantiate(beizerPathGroup.controlPointPrefab, beizerPathGroup.transform).GetComponent<ControlPoint>();
         b.transform.localScale = new Vector3(1, 1, 1);
         b.videoKeyframe = vk;
-        vk.controlPoint = b; 
+        vk.controlPoint = b;
+        b.beizerTime = vk.keyframeTime;
 
 
         // set the transform positions here
@@ -169,6 +183,11 @@ public class BeizerPathData : ScriptableObject
         addKeyFrameToBeizerCurve(zControl, AnimationCurveToUpdate.z);
 
     }
+
+    public void removeControlPoint(VideoKeyFrame vk)
+    {
+
+    }
     #endregion
 
     #region private beizer Animation Curve methods 
@@ -185,6 +204,22 @@ public class BeizerPathData : ScriptableObject
                 break; 
             case AnimationCurveToUpdate.z:
                 curveZbeizer.AddKey(keyframe);
+                break;
+        }
+    }
+
+    private void removeKeyframeFromBeizerCurve(int keyframeIndex, AnimationCurveToUpdate curve)
+    {
+        switch (curve)
+        {
+            case AnimationCurveToUpdate.x:
+                curveXbeizer.RemoveKey(keyframeIndex);
+                break;
+            case AnimationCurveToUpdate.y:
+                curveYbeizer.RemoveKey(keyframeIndex);
+                break;
+            case AnimationCurveToUpdate.z:
+                curveZbeizer.RemoveKey(keyframeIndex);
                 break;
         }
     }
@@ -388,6 +423,7 @@ public class BeizerPathData : ScriptableObject
             IntermediatePoint newIntermediatePoint = g.GetComponent<IntermediatePoint>();
             newIntermediatePoint.transform.position = beizerPointPositionFromVideoKeyframeOfBeizerCurves(keyframeRefData[i]);
             newIntermediatePoint.beizerIntermediateTime = keyframeRefData[i].keyframeTime;
+            newIntermediatePoint.beizerTime = keyframeRefData[i].keyframeTime;
             intermediatePoints.Add(newIntermediatePoint);
         }
 

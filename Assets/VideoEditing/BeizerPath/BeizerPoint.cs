@@ -5,6 +5,7 @@ using UnityEngine;
 public class BeizerPoint : InteractableObject
 {
     public VideoKeyFrame videoKeyframe;
+    public float beizerTime; 
     public float beizerIntermediateTime;
 
     public virtual void SetBeizerPoint(VideoKeyFrame vKeyframe)
