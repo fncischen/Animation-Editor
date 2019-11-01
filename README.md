@@ -5,7 +5,7 @@ A 3D animation editor that allows for content creation natively on mobile device
 
 ## Summary ##
 
-With the rise of spatial computing (VR/AR) and 3D as the next iteration of how media & commerce flow, there will be an increased demand of native 3D authoring tools for consumers. 
+With the rise of spatial computing (VR/AR) and 3D as the next iteration of how media & commerce flow, there will be an increased demand of <a href="https://twitter.com/fncischen/status/1181158122636754945">native 3D authoring tools for consumers</a>. 
 
 Inspired by 3D computer graphics tools such as Blender, and the rise of media & distribution platforms such as Snap & TikTok / 抖音, I decided to create a lightweight animation editor that could handle 3D content creation natively on mobile devices. 
 
