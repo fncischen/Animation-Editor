@@ -29,14 +29,6 @@ Download the Unity package <a href="https://github.com/fncischen/Animation-Edito
 2. Create an 3D interaction design system that leverages VFX (i.e. dynamic shaders) that create a seamless and user-friendly feedback loop throughout the animation editing experience. 
 3. Add 3D onion skinning, improved linear / beizer path designs to keep track of the real-time positions and rotations of each object. 
 
-## For more information ##
-
-1. For more information on the software architecture, see: 
-2. For more information on the interaction design guidelines, see: 
-3. For more information on the philosophy / inspiration behind this project, see: 
-
-To follow this project, see:  
-
 
 
 
